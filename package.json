@@ -1,0 +1,29 @@
+{
+  "name": "project-propel",
+  "version": "1.0.0",
+  "description": "Placement Analytics & Recruitment Management System (PARMS)",
+  "private": true,
+  "scripts": {
+    "dev": "npx concurrently -k -p \"[{name}]\" -n \"BACKEND,FRONTEND\" -c \"indigo,blue\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "db:setup": "node database/setup_db.js",
+    "install:backend": "npm --prefix backend install",
+    "install:frontend": "npm --prefix frontend install",
+    "install:all": "npm run install:backend && npm run install:frontend"
+  },
+  "keywords": [
+    "placement",
+    "recruitment",
+    "analytics",
+    "postgresql",
+    "express",
+    "react",
+    "vite"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^10.0.4"
+  }
+}
