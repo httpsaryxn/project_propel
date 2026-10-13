@@ -3,11 +3,20 @@ const db = require('../config/db');
 const findAllVisits = async () => {
   const query = `
     SELECT 
-      cv.*,
-      c.company_name, c.job_profile, c.package_lpa, c.location
-    FROM company_visits cv
-    JOIN companies c ON cv.company_id = c.company_id
-    ORDER BY cv.visit_date ASC
+      COALESCE(cv.visit_id, c.company_id) AS visit_id,
+      c.company_id,
+      c.company_name,
+      c.job_profile,
+      c.package_lpa,
+      COALESCE(cv.venue, c.location, 'Campus Placement Cell') AS venue,
+      COALESCE(cv.visit_date, c.visit_date) AS visit_date,
+      COALESCE(cv.description, c.job_description, 'Campus Placement Drive') AS description,
+      c.status,
+      c.location
+    FROM companies c
+    LEFT JOIN company_visits cv ON c.company_id = cv.company_id
+    WHERE c.visit_date IS NOT NULL OR cv.visit_date IS NOT NULL
+    ORDER BY COALESCE(cv.visit_date, c.visit_date) ASC
   `;
   const result = await db.query(query);
   return result.rows;

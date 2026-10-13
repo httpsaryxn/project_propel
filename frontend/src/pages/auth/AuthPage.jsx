@@ -12,10 +12,10 @@ export default function AuthPage() {
   // Main Section State: 'login' vs 'register'
   const [mainMode, setMainMode] = useState(location.pathname === '/register' ? 'register' : 'login');
 
-  // Sub-Section State: 'student' vs 'coordinator'
-  const [roleTab, setRoleTab] = useState('student');
+  // Role Selection for Registration Only: 'student' vs 'coordinator'
+  const [registerRoleTab, setRegisterRoleTab] = useState('student');
 
-  // Form input state
+  // Common Form inputs
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -48,23 +48,12 @@ export default function AuthPage() {
     setStudentForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleDemoFill = (selectedRole) => {
-    setRoleTab(selectedRole);
-    if (selectedRole === 'student') {
-      setEmail('john.doe@student.edu');
-      setPassword('password123');
-    } else {
-      setEmail('coordinator@college.edu');
-      setPassword('password123');
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
     if (!email || !password) {
-      setError('Please provide email and password.');
+      setError('Please provide your email and password.');
       return;
     }
 
@@ -72,11 +61,13 @@ export default function AuthPage() {
       setSubmitting(true);
 
       if (mainMode === 'login') {
-        // --- SIGN IN FLOW ---
+        // --- UNIFIED SIGN IN FLOW ---
+        // Automatically detects role from registered database account
         const res = await login({ email, password });
         if (res.success && res.data) {
           loginSession(res.data.user, res.data.token);
-          if (res.data.user.role === 'coordinator' || res.data.user.role === 'admin') {
+          const userRole = res.data.user.role ? res.data.user.role.toLowerCase() : 'student';
+          if (userRole === 'coordinator' || userRole === 'admin') {
             navigate('/coordinator/dashboard');
           } else {
             navigate('/student/dashboard');
@@ -85,7 +76,7 @@ export default function AuthPage() {
       } else {
         // --- CREATE ACCOUNT FLOW ---
         const payload =
-          roleTab === 'coordinator'
+          registerRoleTab === 'coordinator'
             ? {
                 email,
                 password,
@@ -103,7 +94,8 @@ export default function AuthPage() {
         const res = await registerUser(payload);
         if (res.success && res.data) {
           loginSession(res.data.user, res.data.token);
-          if (res.data.user.role === 'coordinator') {
+          const userRole = res.data.user.role ? res.data.user.role.toLowerCase() : 'student';
+          if (userRole === 'coordinator' || userRole === 'admin') {
             navigate('/coordinator/dashboard');
           } else {
             navigate('/student/dashboard');
@@ -111,7 +103,7 @@ export default function AuthPage() {
         }
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Authentication failed. Please check your inputs.');
+      setError(err.response?.data?.message || 'Authentication failed. Please check your credentials.');
     } finally {
       setSubmitting(false);
     }
@@ -131,7 +123,7 @@ export default function AuthPage() {
           }`}
         >
           <LogIn className="w-4 h-4" />
-          <span>Section 1: Sign In</span>
+          <span>Sign In</span>
         </button>
         <button
           type="button"
@@ -143,60 +135,48 @@ export default function AuthPage() {
           }`}
         >
           <UserPlus className="w-4 h-4" />
-          <span>Section 2: Create Account</span>
+          <span>Create Account</span>
         </button>
       </div>
 
       {/* Title & Description */}
       <div className="text-center">
         <h2 className="text-xl font-bold text-white">
-          {mainMode === 'login' ? 'Access Your Dashboard' : 'Register New Account'}
+          {mainMode === 'login' ? 'Welcome Back' : 'Register New Account'}
         </h2>
         <p className="text-xs text-slate-400 mt-0.5">
           {mainMode === 'login'
-            ? 'Select your role sub-section to log in'
-            : 'Select your role sub-section to register'}
+            ? 'Enter your credentials to automatically access your registered role'
+            : 'Select your account type to register'}
         </p>
       </div>
 
-      {/* 2. SUB-SECTION TOGGLE: Student vs T&P Coordinator */}
-      <div className="grid grid-cols-2 gap-2 bg-slate-950/80 p-1 rounded-xl border border-slate-800/80">
-        <button
-          type="button"
-          onClick={() => setRoleTab('student')}
-          className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all ${
-            roleTab === 'student'
-              ? 'bg-slate-800 text-blue-400 border border-blue-500/30 shadow-sm'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <UserCheck className="w-3.5 h-3.5" />
-          <span>Sub-Section A: Student</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setRoleTab('coordinator')}
-          className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all ${
-            roleTab === 'coordinator'
-              ? 'bg-slate-800 text-indigo-400 border border-indigo-500/30 shadow-sm'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <ShieldCheck className="w-3.5 h-3.5" />
-          <span>Sub-Section B: Coordinator</span>
-        </button>
-      </div>
-
-      {/* Demo Credentials Helper for Sign In */}
-      {mainMode === 'login' && (
-        <div className="bg-slate-950/60 border border-slate-800 p-3 rounded-xl flex items-center justify-between text-xs">
-          <span className="text-slate-400">Need demo login?</span>
+      {/* Sub-Section Selection ONLY for Create Account */}
+      {mainMode === 'register' && (
+        <div className="grid grid-cols-2 gap-2 bg-slate-950/80 p-1 rounded-xl border border-slate-800/80">
           <button
             type="button"
-            onClick={() => handleDemoFill(roleTab)}
-            className="text-blue-400 hover:text-blue-300 font-semibold underline underline-offset-2"
+            onClick={() => setRegisterRoleTab('student')}
+            className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all ${
+              registerRoleTab === 'student'
+                ? 'bg-slate-800 text-blue-400 border border-blue-500/30 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
           >
-            Auto-fill {roleTab === 'student' ? 'Student' : 'Coordinator'}
+            <UserCheck className="w-3.5 h-3.5" />
+            <span>Student Registration</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setRegisterRoleTab('coordinator')}
+            className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all ${
+              registerRoleTab === 'coordinator'
+                ? 'bg-slate-800 text-indigo-400 border border-indigo-500/30 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Coordinator Registration</span>
           </button>
         </div>
       )}
@@ -211,10 +191,10 @@ export default function AuthPage() {
 
       {/* Form Submission */}
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Email & Password (Common to all modes) */}
+        {/* Email & Password (Common to all logins) */}
         <div>
           <label className="block text-xs font-medium text-slate-300 mb-1">
-            {roleTab === 'coordinator' ? 'Coordinator Email Address *' : 'College Email Address *'}
+            Email Address *
           </label>
           <div className="relative">
             <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
@@ -222,7 +202,7 @@ export default function AuthPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder={roleTab === 'coordinator' ? 'coordinator@college.edu' : 'student@college.edu'}
+              placeholder="e.g. name@college.edu or name@vit.edu.in"
               className="w-full pl-9 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500"
               required
             />
@@ -244,8 +224,8 @@ export default function AuthPage() {
           </div>
         </div>
 
-        {/* Extra Registration Fields for Student Sub-Section */}
-        {mainMode === 'register' && roleTab === 'student' && (
+        {/* Extra Registration Fields for Student */}
+        {mainMode === 'register' && registerRoleTab === 'student' && (
           <div className="space-y-3 pt-2 border-t border-slate-800/80">
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">Roll Number *</label>
@@ -353,7 +333,9 @@ export default function AuthPage() {
           type="submit"
           disabled={submitting}
           className={`w-full py-2.5 rounded-xl font-semibold text-xs text-white flex items-center justify-center gap-2 transition-all shadow-lg ${
-            roleTab === 'coordinator'
+            mainMode === 'login'
+              ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/20'
+              : registerRoleTab === 'coordinator'
               ? 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/20'
               : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/20'
           } ${submitting ? 'opacity-70 cursor-not-allowed' : ''}`}
@@ -364,8 +346,8 @@ export default function AuthPage() {
             <>
               <span>
                 {mainMode === 'login'
-                  ? `Sign In as ${roleTab === 'student' ? 'Student' : 'Coordinator'}`
-                  : `Create ${roleTab === 'student' ? 'Student' : 'Coordinator'} Account`}
+                  ? 'Sign In to Portal'
+                  : `Create ${registerRoleTab === 'coordinator' ? 'Coordinator' : 'Student'} Account`}
               </span>
               <ArrowRight className="w-3.5 h-3.5" />
             </>

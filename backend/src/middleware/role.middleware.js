@@ -6,7 +6,7 @@ const authorizeRoles = (...allowedRoles) => {
     if (!req.user || !normalizedAllowed.includes(userRole)) {
       return res.status(403).json({
         success: false,
-        message: `Forbidden: Insufficient permissions for this action. Required role: ${allowedRoles.join(' or ')}`
+        message: `Forbidden: Insufficient permissions for this action. Current role: '${userRole || 'none'}'. Required: ${allowedRoles.join(' or ')}.`
       });
     }
     next();

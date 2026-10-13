@@ -134,6 +134,21 @@ const createCompany = async (data) => {
       }
     }
 
+    // 5. Sync to Company Visits Table if visit date provided
+    if (sanitizeDate(data.visit_date)) {
+      await client.query(
+        `INSERT INTO company_visits (company_id, visit_date, venue, description)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT DO NOTHING`,
+        [
+          companyId,
+          sanitizeDate(data.visit_date),
+          sanitizeString(data.location) || 'Campus Placement Cell',
+          sanitizeString(data.job_description) || `${data.company_name} - ${data.job_profile} Campus Drive`
+        ]
+      );
+    }
+
     await client.query('COMMIT');
     return findById(companyId);
   } catch (error) {
@@ -224,6 +239,22 @@ const updateCompany = async (id, data) => {
         await client.query(
           'INSERT INTO company_allowed_locations (company_id, location_zone) VALUES ($1, $2)',
           [id, zone]
+        );
+      }
+    }
+
+    // 5. Sync Company Visits Table
+    if (sanitizeDate(data.visit_date)) {
+      const existingVisit = await client.query('SELECT visit_id FROM company_visits WHERE company_id = $1', [id]);
+      if (existingVisit.rows.length > 0) {
+        await client.query(
+          `UPDATE company_visits SET visit_date = $1, venue = COALESCE($2, venue), description = COALESCE($3, description) WHERE company_id = $4`,
+          [sanitizeDate(data.visit_date), sanitizeString(data.location), sanitizeString(data.job_description), id]
+        );
+      } else {
+        await client.query(
+          `INSERT INTO company_visits (company_id, visit_date, venue, description) VALUES ($1, $2, $3, $4)`,
+          [id, sanitizeDate(data.visit_date), sanitizeString(data.location) || 'Campus Placement Cell', sanitizeString(data.job_description) || 'Campus Placement Drive']
         );
       }
     }
