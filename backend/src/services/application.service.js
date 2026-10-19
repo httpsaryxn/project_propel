@@ -8,17 +8,17 @@ const getEligibleCompanies = async (userId) => {
     error.statusCode = 404;
     throw error;
   }
-  return applicationRepository.getEligibleCompaniesForStudent(student.student_id);
+  return applicationRepository.getStudentDrivesWithEligibility(student.student_id);
 };
 
-const applyForCompany = async (userId, companyId) => {
+const applyForCompany = async (userId, applicationData) => {
   const student = await studentRepository.findByUserId(userId);
   if (!student) {
     const error = new Error('Student profile not found. Please complete profile first.');
     error.statusCode = 404;
     throw error;
   }
-  return applicationRepository.applyForCompany(student.student_id, companyId);
+  return applicationRepository.applyForCompany(student.student_id, applicationData);
 };
 
 const getMyApplications = async (userId) => {

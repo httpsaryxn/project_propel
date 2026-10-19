@@ -40,37 +40,46 @@ async function runSetup() {
     console.warn('⚠️ Could not parse DATABASE_URL as URL, falling back to connection string.');
   }
 
-  // Step 1: Connect to default postgres DB to ensure target database exists
-  const rootClient = new Client({
-    user,
-    password,
-    host,
-    port,
-    database: 'postgres'
-  });
+  const isRemote = host !== 'localhost' && host !== '127.0.0.1';
 
-  try {
-    await rootClient.connect();
-    console.log('✅ Connected to PostgreSQL server.');
+  // Step 1: If running locally, ensure target database exists
+  if (!isRemote) {
+    const rootClient = new Client({
+      user,
+      password,
+      host,
+      port,
+      database: 'postgres'
+    });
 
-    // Check if target database exists
-    const res = await rootClient.query(`SELECT 1 FROM pg_database WHERE datname = $1`, [targetDbName]);
-    if (res.rows.length === 0) {
-      console.log(`📦 Database "${targetDbName}" does not exist. Creating database...`);
-      await rootClient.query(`CREATE DATABASE "${targetDbName}"`);
-      console.log(`✨ Database "${targetDbName}" created successfully!`);
-    } else {
-      console.log(`ℹ️ Database "${targetDbName}" already exists.`);
+    try {
+      await rootClient.connect();
+      console.log('✅ Connected to local PostgreSQL server.');
+
+      // Check if target database exists
+      const res = await rootClient.query(`SELECT 1 FROM pg_database WHERE datname = $1`, [targetDbName]);
+      if (res.rows.length === 0) {
+        console.log(`📦 Database "${targetDbName}" does not exist. Creating database...`);
+        await rootClient.query(`CREATE DATABASE "${targetDbName}"`);
+        console.log(`✨ Database "${targetDbName}" created successfully!`);
+      } else {
+        console.log(`ℹ️ Database "${targetDbName}" already exists.`);
+      }
+    } catch (err) {
+      console.error('❌ Error checking/creating local database:', err.message);
+      process.exit(1);
+    } finally {
+      await rootClient.end();
     }
-  } catch (err) {
-    console.error('❌ Error checking/creating database:', err.message);
-    process.exit(1);
-  } finally {
-    await rootClient.end();
+  } else {
+    console.log(`☁️ Remote cloud database detected (${host}). Connecting with SSL directly...`);
   }
 
   // Step 2: Connect to target database and run migration scripts
-  const dbClient = new Client({ connectionString });
+  const dbClient = new Client({
+    connectionString,
+    ssl: isRemote ? { rejectUnauthorized: false } : false
+  });
 
   try {
     await dbClient.connect();
@@ -92,8 +101,16 @@ async function runSetup() {
       if (fs.existsSync(filePath)) {
         const sqlContent = fs.readFileSync(filePath, 'utf8');
         console.log(`⏳ Executing ${fileName}...`);
-        await dbClient.query(sqlContent);
-        console.log(`  └─ ✅ ${fileName} executed successfully.`);
+        try {
+          await dbClient.query(sqlContent);
+          console.log(`  └─ ✅ ${fileName} executed successfully.`);
+        } catch (fileErr) {
+          if (fileErr.message.includes('already exists') || fileErr.code === '42710' || fileErr.code === '23505') {
+            console.log(`  └─ ℹ️ ${fileName}: objects/constraints already exist, continuing.`);
+          } else {
+            console.warn(`  └─ ⚠️ ${fileName} notice: ${fileErr.message}`);
+          }
+        }
       } else {
         console.warn(`  └─ ⚠️ File not found: ${fileName}`);
       }

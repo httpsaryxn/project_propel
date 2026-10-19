@@ -1,33 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { getVisits } from '../../services/visitService';
+import { getEligibleCompanies } from '../../services/applicationService';
 import { formatDate, formatLPA } from '../../utils/formatters';
-import { Building2, FileText, Award, Bell, CheckCircle2, AlertTriangle, Calendar, MapPin } from 'lucide-react';
+import { Building2, FileText, Award, Bell, CheckCircle2, AlertTriangle, Calendar, MapPin, ArrowRight, XCircle, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function StudentDashboard() {
   const { user } = useAuth();
   const profile = user?.student_profile;
 
-  const [visits, setVisits] = useState([]);
-  const [loadingVisits, setLoadingVisits] = useState(true);
+  const [drives, setDrives] = useState([]);
+  const [loadingDrives, setLoadingDrives] = useState(true);
 
   useEffect(() => {
-    const fetchLiveVisits = async () => {
+    const fetchLiveDrives = async () => {
       try {
-        setLoadingVisits(true);
-        const res = await getVisits();
+        setLoadingDrives(true);
+        const res = await getEligibleCompanies();
         if (res.success && res.data) {
-          setVisits(res.data);
+          setDrives(res.data);
         }
       } catch (err) {
-        console.error('Error fetching campus visits:', err);
+        console.error('Error fetching campus drives:', err);
       } finally {
-        setLoadingVisits(false);
+        setLoadingDrives(false);
       }
     };
 
-    fetchLiveVisits();
+    fetchLiveDrives();
   }, []);
 
   return (
@@ -107,44 +107,66 @@ export default function StudentDashboard() {
         </Link>
       </div>
 
-      {/* SYNCED DATABASE: Scheduled Campus Company Drives */}
+      {/* SYNCED DATABASE: Scheduled Campus Company Drives with Eligibility */}
       <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <h2 className="text-sm font-bold text-white flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-blue-400" />
-            <span>Upcoming Campus Company Drives (Database Synced)</span>
-          </h2>
-          <Link to="/student/companies" className="text-xs font-semibold text-blue-400 hover:text-blue-300">
-            View All Drives ➔
+          <div>
+            <h2 className="text-sm font-bold text-white flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-blue-400" />
+              <span>Visiting Campus Company Drives</span>
+            </h2>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Live recruitment drives synced with academic criteria eligibility engine
+            </p>
+          </div>
+          <Link to="/student/companies" className="text-xs font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1">
+            <span>View All & Apply</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        {loadingVisits ? (
-          <div className="p-6 text-center text-slate-400 text-xs">Syncing visits with PostgreSQL database...</div>
-        ) : visits.length === 0 ? (
+        {loadingDrives ? (
+          <div className="p-6 text-center text-slate-400 text-xs">Evaluating drives and criteria with PostgreSQL database...</div>
+        ) : drives.length === 0 ? (
           <div className="p-6 text-center text-slate-500 text-xs">
-            No campus visits scheduled at this time.
+            No campus drives active at this time. Check back soon!
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {visits.map((v) => (
-              <div key={v.visit_id} className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-white text-sm">{v.company_name}</h3>
-                  <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold">
-                    {formatLPA(v.package_lpa)}
+            {drives.slice(0, 4).map((d) => (
+              <div key={d.company_id} className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-2 hover:border-slate-700 transition-all">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="font-bold text-white text-sm truncate">{d.company_name}</h3>
+                  <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold shrink-0">
+                    {formatLPA(d.package_lpa)}
                   </span>
                 </div>
-                <p className="text-xs text-slate-400">{v.job_profile}</p>
-                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-300">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5 text-blue-400" />
-                    <span>{formatDate(v.visit_date)}</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-slate-400">
-                    <MapPin className="w-3.5 h-3.5 text-slate-500" />
-                    <span>{v.venue}</span>
-                  </div>
+                <p className="text-xs text-slate-400">{d.job_profile} ({d.job_type})</p>
+                
+                {/* Eligibility Tag & Action */}
+                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                  {d.has_applied ? (
+                    <span className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 font-semibold">
+                      Applied ({d.application_status || 'Applied'})
+                    </span>
+                  ) : d.is_eligible ? (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      <span>Eligible to Apply</span>
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 font-semibold flex items-center gap-1">
+                      <XCircle className="w-3 h-3" />
+                      <span>Not Eligible</span>
+                    </span>
+                  )}
+
+                  <Link
+                    to="/student/companies"
+                    className="text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-0.5"
+                  >
+                    <span>{d.is_eligible && !d.has_applied ? 'Apply ➔' : 'Details ➔'}</span>
+                  </Link>
                 </div>
               </div>
             ))}

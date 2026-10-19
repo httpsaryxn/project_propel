@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Rocket, User, Building2, FileText, Award, Bell, LogOut } from 'lucide-react';
+import AcademicCriteriaModal from '../components/student/AcademicCriteriaModal';
 
 export default function StudentLayout() {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -16,11 +17,17 @@ export default function StudentLayout() {
   const navItems = [
     { label: 'Dashboard', path: '/student/dashboard', icon: Rocket },
     { label: 'My Profile', path: '/student/profile', icon: User },
-    { label: 'Eligible Companies', path: '/student/companies', icon: Building2 },
+    { label: 'Visiting Companies', path: '/student/companies', icon: Building2 },
     { label: 'My Applications', path: '/student/applications', icon: FileText },
     { label: 'My Offers', path: '/student/offers', icon: Award },
     { label: 'Notifications', path: '/student/notifications', icon: Bell }
   ];
+
+  // Check if student has not recorded their academic criteria yet
+  const needsAcademicSetup =
+    user?.role === 'student' &&
+    user?.student_profile &&
+    !user.student_profile.academic_recorded;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
@@ -78,6 +85,12 @@ export default function StudentLayout() {
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
         <Outlet />
       </main>
+
+      {/* Mandatory First-Time Academic Criteria Modal */}
+      <AcademicCriteriaModal
+        isOpen={Boolean(needsAcademicSetup)}
+        onComplete={() => refreshUser()}
+      />
     </div>
   );
 }

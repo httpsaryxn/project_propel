@@ -39,6 +39,13 @@ CREATE TABLE IF NOT EXISTS students (
     linkedin_url TEXT,
     github_url TEXT,
     skills TEXT[],
+    cgpa NUMERIC(4, 2) DEFAULT NULL,
+    tenth_percentage NUMERIC(5, 2) DEFAULT NULL,
+    twelfth_percentage NUMERIC(5, 2) DEFAULT NULL,
+    diploma_percentage NUMERIC(5, 2) DEFAULT NULL,
+    active_backlogs INT DEFAULT 0,
+    total_backlogs INT DEFAULT 0,
+    academic_recorded BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -105,6 +112,9 @@ CREATE TABLE IF NOT EXISTS applications (
     student_id INT NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
     company_id INT NOT NULL REFERENCES companies(company_id) ON DELETE CASCADE,
     status VARCHAR(50) DEFAULT 'Applied' CHECK (status IN ('Applied', 'Shortlisted', 'Interviewing', 'Rejected', 'Selected')),
+    skills TEXT[] DEFAULT '{}',
+    resume_url TEXT,
+    cover_note TEXT,
     applied_on TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (student_id, company_id)
 );

@@ -4,7 +4,7 @@ const { sendSuccess } = require('../utils/response');
 const getEligibleCompanies = async (req, res, next) => {
   try {
     const companies = await applicationService.getEligibleCompanies(req.user.user_id);
-    return sendSuccess(res, companies, 'Eligible companies list fetched');
+    return sendSuccess(res, companies, 'Campus visiting companies and eligibility fetched');
   } catch (error) {
     next(error);
   }
@@ -12,7 +12,7 @@ const getEligibleCompanies = async (req, res, next) => {
 
 const applyForCompany = async (req, res, next) => {
   try {
-    const result = await applicationService.applyForCompany(req.user.user_id, req.body.company_id);
+    const result = await applicationService.applyForCompany(req.user.user_id, req.body);
     return sendSuccess(res, result, 'Application submitted successfully', 201);
   } catch (error) {
     next(error);

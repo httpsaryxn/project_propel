@@ -8,6 +8,21 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [loading, setLoading] = useState(true);
 
+  const refreshUser = async () => {
+    if (token) {
+      try {
+        const res = await getMe();
+        if (res.success && res.data) {
+          setUser(res.data);
+          return res.data;
+        }
+      } catch (err) {
+        console.error('Failed to refresh user session:', err);
+      }
+    }
+    return null;
+  };
+
   useEffect(() => {
     const initAuth = async () => {
       if (token) {
@@ -42,7 +57,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, loginSession, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, loginSession, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

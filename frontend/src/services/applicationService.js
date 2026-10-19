@@ -5,8 +5,9 @@ export const getEligibleCompanies = async () => {
   return response.data;
 };
 
-export const applyCompany = async (companyId) => {
-  const response = await API.post('/applications/apply', { company_id: companyId });
+export const applyCompany = async (applicationData) => {
+  const payload = typeof applicationData === 'object' ? applicationData : { company_id: applicationData };
+  const response = await API.post('/applications/apply', payload);
   return response.data;
 };
 
